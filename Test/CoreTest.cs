@@ -9,31 +9,31 @@ namespace Test
 {
     public class CoreTest
     {
-        /* Select */
+        /* Map */
 
         [Theory]
         [InlineData(null, null)]
         [InlineData(3, 6)]
         public void CanSelectOnNullInt(int? a, int? r) =>
-            Assert.Equal(r, a.Select<int, int>(x => x * 2));
+            Assert.Equal(r, a.Map<int, int>(x => x * 2));
 
         [Theory]
         [InlineData(null, null)]
         [InlineData("luca", "LUCA")]
         public void CanSelectOnNullString(string? a, string? r) =>
-            Assert.Equal(r, a.Select(x => x.ToUpper()));
+            Assert.Equal(r, a.Map(x => x.ToUpper()));
 
         [Theory]
         [InlineData(null, null)]
         [InlineData(3, "3")]
         public void CanSelectToDifferentType1(int? a, string? r) =>
-            Assert.Equal(r, a.Select<int, string>(x => x.ToString()));
+            Assert.Equal(r, a.Map<int, string>(x => x.ToString()));
 
         [Theory]
         [InlineData(null, null)]
         [InlineData("3", 3)]
         public void CanSelectToDifferentType2(string? a, int? r) =>
-            Assert.Equal(r, a.Select<string, int>(x => int.Parse(x)));
+            Assert.Equal(r, a.Map<string, int>(x => int.Parse(x)));
 
         /* Bind */
 

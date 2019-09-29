@@ -8,24 +8,23 @@ namespace FFSharp
 {
     public static class Core
     {
-        /* Select */
-        public static TR? Select<TA, TR>(this TA? a, Func<TA, TR?> f)
+        /* Map */
+        public static TR? Map<TA, TR>(this TA? a, Func<TA, TR?> f)
             where TA : struct
             where TR : struct
             => a == null ? null : f is null ? null : f(a.Value);
 
-        public static TR? Select<TA, TR>(this TA? a, Func<TA, TR?> f)
+        public static TR? Map<TA, TR>(this TA? a, Func<TA, TR?> f)
             where TA : class
             where TR : class
             => a == null ? null : f is null ? null : f(a);
 
-
-        public static TR? Select<TA, TR>(this TA? a, Func<TA, TR?> f)
+        public static TR? Map<TA, TR>(this TA? a, Func<TA, TR?> f)
             where TA : struct
             where TR : class
             => a == null ? null : f is null ? null : f(a.Value);
 
-        public static TR? Select<TA, TR>(this TA? a, Func<TA, TR?> f)
+        public static TR? Map<TA, TR>(this TA? a, Func<TA, TR?> f)
             where TA : class
             where TR : struct
             => a == null ? null : f is null ? null : f(a);
