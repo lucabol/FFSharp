@@ -9,60 +9,44 @@ using static System.Linq.Enumerable;
 using Unit = System.ValueTuple;
 using static FFSharp.Core;
 
-public struct Age
-{
-    private int Value { get; }
-    private Age(int value)
-    {
-        if (!IsValid(value))
-            throw new ArgumentException($"{value} is not a valid age");
+public struct Age { public int years; }
 
-        Value = value;
-    }
 
-    private static bool IsValid(int age)
-       => 0 <= age && age < 120;
-
-    public static Age? Of(int age)
-       => IsValid(age) ? new Age?(new Age(age)) : null;
-
-    public static bool operator <(Age l, Age r) => l.Value < r.Value;
-    public static bool operator >(Age l, Age r) => l.Value > r.Value;
-
-    public static bool operator <(Age l, int r) => l < new Age(r);
-    public static bool operator >(Age l, int r) => l > new Age(r);
-
-    public override string ToString() => Value.ToString();
-}
-
-struct A { public int X; public string Y; }
-//struct Unit { }
 static class Program
 {
-    public static class Int
-    {
-        public static int? Parse(string s)
-        {
-            return int.TryParse(s, out int result)
-               ? (int?)(result) : null;
-        }
-    }
+    private static bool ValidAge(int years) => years > 0 && years < 200;
+
+    static Age? AsAge(this int years) => ValidAge(years)
+        ? new Age { years = years }
+        : Fail<Age>("Age not correct");
+
+    static Age? AddYears(this Age age, int years) => (age.years + years).AsAge();
+
+    class Candidate { };
 
     static void Main()
     {
-        Func<string, Age?> parseAge = s => Int.Parse(s).Bind(Age.Of);
-        var a1 = parseAge("26");
-        a1.Foreach(x => WriteLine(x));
+        var age = 30.AsAge()
+                    ?.AddYears(1);
+        var age2 = 10.AsAge()
+                    ?.AddYears(2)
+                    ?.AddYears(-50)
+                    .Throw();
 
-        string input = "3";
-        int? optI = Int.Parse(input);
-        var ageOpt = optI.Bind(Age.Of);
+        age.Foreach(x => WriteLine(x.years));
+        age2.Foreach(x => WriteLine(x));
 
-        var a = new A { X = 1, Y = "test" };
-        var ii = new[] { 1, 2, 3 };
-        var l = new List<int> { 1, 2, 3 };
-        Range(1, 10).ForEach(WriteLine);
-        Span<int> s = new[] { 1, 2, 3 };
-        s.ForEach(WriteLine);
+        var cand = new Candidate();
+
+        Func<Candidate, bool> IsEligible = x => true;
+        Func<Candidate, Candidate?> TechTest = c => c;
+        Func<Candidate, Candidate?> Interview = c => c;
+
+        cand
+            ?.Where(IsEligible)
+            ?.Bind(TechTest)
+            ?.Foreach(WriteLine);
+
     }
+
 }

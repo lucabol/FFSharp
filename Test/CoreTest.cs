@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices.ComTypes;
 using Xunit;
 using static FFSharp.Core;
 
@@ -10,7 +11,6 @@ namespace Test
     public class CoreTest
     {
         /* Map */
-
         [Theory]
         [InlineData(null, null)]
         [InlineData(3, 6)]
@@ -36,7 +36,6 @@ namespace Test
             Assert.Equal(r, a.Map<string, int>(x => int.Parse(x)));
 
         /* Bind */
-
         static int? BindF(int i)       => i * 2;
         static string? BindF(string s) => s.ToUpper();
         static string? BindFi(int i) => i.ToString();
@@ -67,7 +66,6 @@ namespace Test
             Assert.Equal(r, a.Bind(BindFs));
 
         /* Foreach */
-
         [Theory]
         [InlineData(null, 0)]
         [InlineData(3, 3)]
@@ -109,5 +107,40 @@ namespace Test
             Assert.Equal(r, acc);
         }
 
+        /* Where */
+        [Theory]
+        [InlineData(null, null)]
+        [InlineData(3, 3)]
+        [InlineData(4, null)]
+        public void CanWhereStruct(int? a, int? r) =>
+            Assert.Equal(r, a.Where(x => x == r));
+
+        [Theory]
+        [InlineData(null, null)]
+        [InlineData("3", "3")]
+        [InlineData("4", null)]
+        public void CanWhereClass(string? a, string? r) =>
+            Assert.Equal(r, a.Where(x => x == r));
+
+        /* Option Utils */
+        [Theory]
+        [InlineData(new[] { 1, 2, 3 })]
+        [InlineData(new int[] {})]
+        public void CanBindEnumerableOfOptionsStruct(IEnumerable<int> ints) =>
+            Assert.Equal(ints, ints.Bind(x => new Nullable<int>(x)));
+
+        [Theory]
+        [InlineData("1,2,3")]
+        [InlineData("")]
+        public void CanBindEnumerableOfOptionsClass(string strings) =>
+            Assert.Equal(strings.Split(','), strings.Split(',').Bind(x => (string?)x));
+
+        /* Error */
+        [Theory]
+        [InlineData("some")]
+        [InlineData(null)]
+        public void CanManageClassResult(string? s)
+        {
+        }
     }
 }
