@@ -34,6 +34,9 @@ namespace FFSharp
             where TR : struct
             => a == null ? null : f is null ? null : f(a);
 
+        public static IEnumerable<TR> Map<T, TR>(this IEnumerable<T> t, Func<T, TR> f) => t.Select(f);
+        public static IEnumerable<TR> Map<T, TR>(this Span<T> t, Func<T, TR> f) => t.ToArray().Select(f);
+
         /* Bind */
         public static TR? Bind<T, TR>(this T? optT, Func<T, TR?> f)
             where T : struct
@@ -75,13 +78,13 @@ namespace FFSharp
             => t.AsEnumerable().SelectMany(f);
 
         /* Foreach */
-        public static void Foreach<T>(this T? t, Action<T> action)
+        public static void ForEach<T>(this T? t, Action<T> action)
             where T : struct
         {
             if (t is null || action is null) return;
             action(t.Value);
         }
-        public static void Foreach<T>(this T? t, Action<T> action)
+        public static void ForEach<T>(this T? t, Action<T> action)
             where T : class
         {
             if (t is null || action is null) return;
@@ -118,63 +121,89 @@ namespace FFSharp
             => a  != null ? Repeat(a, 1) : Empty<T>();
 
         /* Error management */
-        private static readonly FieldInfo STACK_TRACE_STRING_FI = typeof(Exception).GetField("_stackTraceString", BindingFlags.NonPublic | BindingFlags.Instance);
-        private static readonly Type TRACE_FORMAT_TI = Type.GetType("System.Diagnostics.StackTrace").GetNestedType("TraceFormat", BindingFlags.NonPublic);
-        private static readonly MethodInfo TRACE_TO_STRING_MI = typeof(StackTrace).GetMethod("ToString", BindingFlags.NonPublic | BindingFlags.Instance, null, new[] { TRACE_FORMAT_TI }, null);
 
-        private static Exception SetStackTrace2(this Exception target, StackTrace stack)
-        {
-            var getStackTraceString = TRACE_TO_STRING_MI.Invoke(stack, new object[] { Enum.GetValues(TRACE_FORMAT_TI).GetValue(0) });
-            STACK_TRACE_STRING_FI.SetValue(target, getStackTraceString);
-            return target;
-        }
-
-        private static readonly Action<Exception> _internalPreserveStackTrace =
-            (Action<Exception>)Delegate.CreateDelegate(
-                typeof(Action<Exception>),
-                typeof(Exception).GetMethod(
-                    "InternalPreserveStackTrace",
-                    BindingFlags.Instance | BindingFlags.NonPublic));
-
-        public static void PreserveStackTrace(Exception e)
-        {
-            _internalPreserveStackTrace(e);
-        }
-        private static readonly FieldInfo stackTraceString = typeof(Exception).GetField("_stackTraceString", BindingFlags.Instance | BindingFlags.NonPublic);
-        private static readonly FieldInfo stackTrace = typeof(Exception).GetField("_stackTrace", BindingFlags.Instance | BindingFlags.NonPublic);
-
-        private static void SetStackTracesString(this Exception exception, string value)
-            => stackTraceString.SetValue(exception, value);
-        private static void SetStackTrace(this Exception exception, StackTrace value)
-            => stackTrace.SetValue(exception, value);
-
-        [ThreadStatic] private static ErrorData errorData = null;
+        [ThreadStatic] private static ErrorData? errorData = null;
 
         public class ErrorData
         {
             public string Message { get; }
             public StackTrace StackTrace { get; }
 
-            public ErrorData(string msg, StackTrace s) => (Message, StackTrace) = (msg, s);
+            public ErrorData(string msg)
+            {
+                Message = msg;
+                StackTrace = new StackTrace(1, true);
+            }
             public void Deconstruct(out string message, out StackTrace stackTrace) => (message, stackTrace) = (Message, StackTrace);
             public override string ToString() => $"Error: {Message}\n{StackTrace}";
         }
+        public static ErrorData? GetErrorData() {
+            if (errorData is null) return null;
+            var temp = errorData;
+            errorData = null;
+            return temp;
+        }
+        public static void ResetErrorData() => errorData = null;
 
+        public static T? Fail<T>(ErrorData e) where T: struct
+        {
+            errorData = e;
+            return null;
+        }
 
-        public static T? Fail<T>(string msg, int i = default)
+        public static T? Fail<T>(ErrorData e, int i = 0) where T : class
+        {
+            errorData = e;
+            return null;
+        }
+
+        public static T? Fail<T>(string msg, int i = default) where T : class
+            => Fail<T>(new ErrorData(msg));
+
+        public static T? Fail<T>(string msg) where T : struct
+            => Fail<T>(new ErrorData(msg));
+
+        public static void ForError<T>(this T? t, Action<ErrorData> f)
             where T : class
         {
-            errorData = new ErrorData(msg, new StackTrace(1, true));
-            return null;
+            if (t is null && !(errorData is null) && !(f is null))
+            {
+                f(errorData);
+                ResetErrorData();
+            }
+            return;
         }
 
-        public static T? Fail<T>(string msg)
+        public static void ForError<T>(this T? t, Action<ErrorData> f)
             where T : struct
         {
-            errorData = new ErrorData(msg, new StackTrace(1, true));
-            return null;
+            if (t is null && !(errorData is null) && !(f is null))
+            {
+                f(errorData);
+                ResetErrorData();
+            }
+            return;
         }
 
+        /* Unit */
+        // From: https://github.com/dotnet/reactive/blob/master/Rx.NET/Source/src/System.Reactive/Unit.cs
+        public struct Unit : IEquatable<Unit>
+        {
+            public bool Equals(Unit other) => true;
+            public override bool Equals(object obj) => obj is Unit;
+            public override int GetHashCode() => 0;
+            public override string ToString() => "()";
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA1801:ReviewUnusedParameters", MessageId = "first", Justification = "Parameter required for operator overloading."), System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA1801:ReviewUnusedParameters", MessageId = "second", Justification = "Parameter required for operator overloading.")]
+            public static bool operator ==(Unit first, Unit second) => true;
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA1801:ReviewUnusedParameters", MessageId = "first", Justification = "Parameter required for operator overloading."), System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA1801:ReviewUnusedParameters", MessageId = "second", Justification = "Parameter required for operator overloading.")]
+            public static bool operator !=(Unit first, Unit second) => false;
 
+            public static Unit Default => default;
+        }
+
+        public static void Match(this Unit? u, Action onError, Action onSuccess)
+        {
+            if (u is null) onError(); else onSuccess();
+        }
     }
 }

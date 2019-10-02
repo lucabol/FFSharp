@@ -72,7 +72,7 @@ namespace Test
         public void CanForeachValueType(int? a, int? r)
         {
             int acc = 0;
-            a.Foreach(x => acc += x); ;
+            a.ForEach(x => acc += x); ;
             Assert.Equal(r, acc);
         }
 
@@ -82,7 +82,7 @@ namespace Test
         public void CanForeachClassype(string? a, string? r)
         {
             string acc = "";
-            a.Foreach(x => acc += x); ;
+            a.ForEach(x => acc += x); ;
             Assert.Equal(r, acc);
         }
 

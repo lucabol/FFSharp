@@ -6,11 +6,9 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using static System.Console;
 using static System.Linq.Enumerable;
-using Unit = System.ValueTuple;
 using static FFSharp.Core;
 
 public struct Age { public int years; }
-
 
 static class Program
 {
@@ -24,29 +22,32 @@ static class Program
 
     class Candidate { };
 
-    static void Main()
+    static void Main2()
     {
         var age = 30.AsAge()
                     ?.AddYears(1);
         var age2 = 10.AsAge()
                     ?.AddYears(2)
-                    ?.AddYears(-50)
-                    .Throw();
+                    ?.AddYears(-50);
 
-        age.Foreach(x => WriteLine(x.years));
-        age2.Foreach(x => WriteLine(x));
+        age.ForEach(x => WriteLine(x.years));
+        age2.ForEach(x => WriteLine(x));
+
+        age.ForError(WriteLine);
+        age2.ForError(WriteLine);
 
         var cand = new Candidate();
 
-        Func<Candidate, bool> IsEligible = x => true;
+        Func<Candidate, bool> IsEligible = x => false;
         Func<Candidate, Candidate?> TechTest = c => c;
         Func<Candidate, Candidate?> Interview = c => c;
 
-        cand
+        var c = cand
             ?.Where(IsEligible)
-            ?.Bind(TechTest)
-            ?.Foreach(WriteLine);
+            ?.Bind(TechTest);
 
+        c?.ForEach(WriteLine);
+        c.ForError(WriteLine);
     }
 
 }
