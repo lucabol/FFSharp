@@ -111,7 +111,8 @@ namespace App
 
                 Trace.Assert(CheckHandledAllErrors());
 
-                WriteLine("Test throwing in right situation");
+                WriteLine("Test throwing right exception when trying to consume too many errors\n");
+
                 try
                 {
                     var result = badBic.HandleFunc();
@@ -122,7 +123,8 @@ namespace App
                 {
                     WriteLine(ee);
                 }
-                
+                Trace.Assert(CheckHandledAllErrors());
+
             }
         }
     }
