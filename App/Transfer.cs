@@ -9,6 +9,7 @@ using static System.Linq.Enumerable;
 using static FFSharp.Core;
 using FFSharp;
 using System.Text.RegularExpressions;
+using System.Diagnostics;
 
 namespace App
 {
@@ -80,17 +81,35 @@ namespace App
                 }
                 static void HandleOk(Unit _) => WriteLine("Transfer Ok");
 
+                WriteLine("Check handling errors immediately after the pipeline with Match\n");
+
                 good.HandleAction().Match(HandleOk, HandleError); WriteLine();
                 badBic.HandleAction().Match(HandleOk, HandleError);
                 badDate.HandleAction().Match(HandleOk, HandleError);
 
                 var canMatchGood    = good.HandleFunc();
-                var canMatchBadBic  = badBic.HandleFunc();
-                var canMatchBadDate = badDate.HandleFunc();
-
                 WriteLine(canMatchGood.Match(x => x.ToString(), error => error.ToString()));
+
+                var canMatchBadBic  = badBic.HandleFunc();
                 WriteLine(canMatchBadBic.Match(x => x.ToString(), error => error.ToString()));
+
+                var canMatchBadDate = badDate.HandleFunc();
                 WriteLine(canMatchBadDate.Match(x => x.ToString(), error => error.ToString()));
+
+                Trace.Assert(CheckHandledAllErrors());
+
+                WriteLine("Check handling all errors in one shot at the end of multiple pipelines\n");
+
+                good.HandleAction();
+                badBic.HandleAction();
+                badDate.HandleAction();
+                var _1 = good.HandleFunc();
+                var _2 = badBic.HandleFunc();
+                var _3 = badDate.HandleFunc();
+
+                PopAllErrors().ForEach<ErrorData>(WriteLine);
+
+                Trace.Assert(CheckHandledAllErrors());
             }
         }
     }

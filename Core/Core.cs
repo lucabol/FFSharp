@@ -122,7 +122,7 @@ namespace FFSharp
 
         /* Error management */
 
-        [ThreadStatic] private static ErrorData errorData = null;
+        [ThreadStatic] private static Stack<ErrorData> errors = new Stack<ErrorData>();
 
         public class ErrorData
         {
@@ -137,24 +137,16 @@ namespace FFSharp
             public void Deconstruct(out string message, out StackTrace stackTrace) => (message, stackTrace) = (Message, StackTrace);
             public override string ToString() => $"Error: {Message}\n{StackTrace}";
         }
-        public static ErrorData GetErrorData()
-        {
-            if (errorData is null) throw new Exception("You are trying to retrieve an error after it has been already retrieved. You need to inspect for errors immediately after the function chain related to that error ends.");
-            var temp = errorData;
-            errorData = null;
-            return temp;
-        }
-        public static void ResetErrorData() => errorData = null;
 
         public static T? Fail<T>(ErrorData e) where T : struct
         {
-            errorData = e;
+            errors.Push(e);
             return null;
         }
 
         public static T? Fail<T>(ErrorData e, int i = 0) where T : class
         {
-            errorData = e;
+            errors.Push(e);
             return null;
         }
 
@@ -167,22 +159,14 @@ namespace FFSharp
         public static void ForError<T>(this T? t, Action<ErrorData> f)
             where T : class
         {
-            if (t is null && !(errorData is null) && !(f is null))
-            {
-                f(errorData);
-                ResetErrorData();
-            }
+            if (t is null && !(f is null)) f(errors.Pop());
             return;
         }
 
         public static void ForError<T>(this T? t, Action<ErrorData> f)
             where T : struct
         {
-            if (t is null && !(errorData is null) && !(f is null))
-            {
-                f(errorData);
-                ResetErrorData();
-            }
+            if (t is null && !(f is null)) f(errors.Pop());
             return;
         }
 
@@ -205,25 +189,35 @@ namespace FFSharp
         public static TR Match<T, TR>(this T? t, Func<T, TR> onSuccess,Func<ErrorData, TR> onError) where T:class
             => t switch
             {
-                null    => onError(GetErrorData()),
+                null    => onError(errors.Pop()),
                 { }     => onSuccess(t)
             };
 
         public static TR Match<T, TR>(this T? t, Func<T, TR> onSuccess, Func<ErrorData, TR> onError) where T :struct
             => t switch
             {
-                null => onError(GetErrorData()),
+                null => onError(errors.Pop()),
                 { } => onSuccess(t.Value)
             };
         public static void Match<T>(this T? t, Action<T> onSuccess, Action<ErrorData> onError) where T : class
         {
-            if (t is null) onError(GetErrorData());
+            if (t is null) onError(errors.Pop());
             else onSuccess(t);
         }
         public static void Match<T>(this T? t, Action<T> onSuccess, Action<ErrorData> onError) where T : struct
         {
-            if (t is null) onError(GetErrorData());
+            if (t is null) onError(errors.Pop());
             else onSuccess(t.Value);
         }
+
+        public static IEnumerable<ErrorData> PopAllErrors()
+        {
+            var a = errors.ToArray();
+            errors.Clear();
+            return a;
+        }
+
+        public static bool CheckHandledAllErrors() => errors.Count == 0;
+
     }
 }
