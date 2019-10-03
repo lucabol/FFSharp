@@ -122,7 +122,27 @@ namespace FFSharp
 
         /* Error management */
 
-        [ThreadStatic] private static Stack<ErrorData> errors = new Stack<ErrorData>();
+        public class ErrorsException : Exception {
+            internal ErrorsException(string msg, Exception e) : base(msg, e) { }
+        }
+
+        private class ErrorStack<T> : Stack<T>
+        {
+            internal ErrorStack() : base() { }
+            internal new T Pop()
+            {
+                try
+                {
+                    return base.Pop();
+
+                } catch(InvalidOperationException e)
+                {
+                    throw new ErrorsException("You have already retrieved all the errors in this thread", e);
+                }
+            }
+        }
+
+        [ThreadStatic] private static ErrorStack<ErrorData> errors = new ErrorStack<ErrorData>();
 
         public class ErrorData
         {

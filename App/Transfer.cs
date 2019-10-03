@@ -110,6 +110,19 @@ namespace App
                 PopAllErrors().ForEach<ErrorData>(WriteLine);
 
                 Trace.Assert(CheckHandledAllErrors());
+
+                WriteLine("Test throwing in right situation");
+                try
+                {
+                    var result = badBic.HandleFunc();
+                    result.Match(x => x.ToString(), error => error.ToString());
+                    result.Match(x => x.ToString(), error => error.ToString());
+                }
+                catch (ErrorsException ee)
+                {
+                    WriteLine(ee);
+                }
+                
             }
         }
     }
