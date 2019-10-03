@@ -118,11 +118,11 @@ namespace FFSharp
 
         public static IEnumerable<T> AsEnumerable<T>(this T? a)
             where T : class
-            => a  != null ? Repeat(a, 1) : Empty<T>();
+            => a != null ? Repeat(a, 1) : Empty<T>();
 
         /* Error management */
 
-        [ThreadStatic] private static ErrorData? errorData = null;
+        [ThreadStatic] private static ErrorData errorData = null;
 
         public class ErrorData
         {
@@ -132,20 +132,21 @@ namespace FFSharp
             public ErrorData(string msg)
             {
                 Message = msg;
-                StackTrace = new StackTrace(1, true);
+                StackTrace = new StackTrace(3, true);
             }
             public void Deconstruct(out string message, out StackTrace stackTrace) => (message, stackTrace) = (Message, StackTrace);
             public override string ToString() => $"Error: {Message}\n{StackTrace}";
         }
-        public static ErrorData? GetErrorData() {
-            if (errorData is null) return null;
+        public static ErrorData GetErrorData()
+        {
+            if (errorData is null) throw new Exception("You are trying to retrieve an error after it has been already retrieved. You need to inspect for errors immediately after the function chain related to that error ends.");
             var temp = errorData;
             errorData = null;
             return temp;
         }
         public static void ResetErrorData() => errorData = null;
 
-        public static T? Fail<T>(ErrorData e) where T: struct
+        public static T? Fail<T>(ErrorData e) where T : struct
         {
             errorData = e;
             return null;
@@ -201,9 +202,28 @@ namespace FFSharp
             public static Unit Default => default;
         }
 
-        public static void Match(this Unit? u, Action onError, Action onSuccess)
+        public static TR Match<T, TR>(this T? t, Func<T, TR> onSuccess,Func<ErrorData, TR> onError) where T:class
+            => t switch
+            {
+                null    => onError(GetErrorData()),
+                { }     => onSuccess(t)
+            };
+
+        public static TR Match<T, TR>(this T? t, Func<T, TR> onSuccess, Func<ErrorData, TR> onError) where T :struct
+            => t switch
+            {
+                null => onError(GetErrorData()),
+                { } => onSuccess(t.Value)
+            };
+        public static void Match<T>(this T? t, Action<T> onSuccess, Action<ErrorData> onError) where T : class
         {
-            if (u is null) onError(); else onSuccess();
+            if (t is null) onError(GetErrorData());
+            else onSuccess(t);
+        }
+        public static void Match<T>(this T? t, Action<T> onSuccess, Action<ErrorData> onError) where T : struct
+        {
+            if (t is null) onError(GetErrorData());
+            else onSuccess(t.Value);
         }
     }
 }
